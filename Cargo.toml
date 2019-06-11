@@ -1,0 +1,17 @@
+[package]
+name = "kattis"
+version = "0.1.0"
+authors = ["Christofer Nolander <christofer.nolander@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+structopt = "0.2.16"
+failure = "0.1.5"
+reqwest = "0.9.18"
+serde = "1.0.92"
+serde_derive = "1.0.92"
+dirs = "2.0.1"
+serde_yaml = "0.8.9"
+derive_more = "0.15.0"
+zip = "0.5.2"
+fs_extra = "1.1.0"
