@@ -11,6 +11,9 @@ use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 use zip::ZipArchive;
+use std::process::Command;
+use std::collections::HashMap;
+use std::str::from_utf8;
 
 #[derive(Debug, Fail, From)]
 pub enum Error {
@@ -49,6 +52,18 @@ pub enum Error {
     #[fail(display = "Could not find a problem with the id \"{}\"", problem)]
     ProblemNotFound { problem: String },
 
+    #[fail(display = "Build command failed: {}", command)]
+    BuildCommandFailed { command: String },
+
+    #[fail(display = "Run command failed: {}", command)]
+    RunCommandFailed { command: String },
+
+    #[fail(display = "No run commands provided")]
+    RunCommandsMissing,
+
+    #[fail(display = "Answer contained invalid UTF-8: {}", _0)]
+    InvalidUtf8Answer(#[cause] std::str::Utf8Error),
+
     #[fail(display = "Kattis responded with an error: {}", code)]
     Kattis { code: StatusCode },
 
@@ -80,12 +95,12 @@ struct Args {
     domain: Option<String>,
 
     #[structopt(subcommand)]
-    command: Command,
+    command: SubCommand,
 }
 
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
-enum Command {
+enum SubCommand {
     /// Creates a new solution to a problem in a new directory.
     ///
     /// Creates a new test suite from the samples from the problem page and configures the
@@ -102,7 +117,7 @@ enum Command {
     Test(TestSolution),
 
     /// View, create and modify templates.
-    Template(TemplateCommand),
+    Template(TemplateSubCommand),
 }
 
 #[derive(Debug, StructOpt)]
@@ -147,7 +162,7 @@ struct TestSolution {
 
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
-enum TemplateCommand {
+enum TemplateSubCommand {
     /// Create a new template.
     ///
     /// Prints the path to the new template.
@@ -190,11 +205,11 @@ struct ProblemConfig {
     #[serde(default = "default_samples_dir")]
     samples: PathBuf,
 
-    /// Commands to execute in order to build the solution.
+    /// SubCommands to execute in order to build the solution.
     #[serde(default)]
     build: Vec<String>,
 
-    /// Commands to execute in order to run the solution, the sample input will be piped into the
+    /// SubCommands to execute in order to run the solution, the sample input will be piped into the
     /// last command.
     #[serde(default)]
     run: Vec<String>,
@@ -213,10 +228,10 @@ fn main() {
 
     match args.execute() {
         Ok(()) => {
-            println!("Success! Happy Coding!");
+            println!("Done.");
         }
         Err(e) => {
-            eprintln!("Error: {}", e);
+            error!("Error: {}", e);
         }
     }
 }
@@ -324,7 +339,7 @@ impl Args {
         let domain = self.domain.as_ref().unwrap_or(&config.default_domain);
 
         match self.command {
-            Command::Samples(command) => {
+            SubCommand::Samples(command) => {
                 assert_problem_exists(domain, &command.problem)?;
 
                 let samples = download_samples(domain, &command.problem)?;
@@ -334,7 +349,7 @@ impl Args {
                 }
             }
 
-            Command::New(command) => {
+            SubCommand::New(command) => {
                 let template = command
                     .template
                     .or_else(|| config.default_template.clone())
@@ -396,10 +411,10 @@ impl Args {
                 }
             }
 
-            Command::Test(TestSolution { directory }) => {
+            SubCommand::Test(TestSolution { directory }) => {
                 let problem_config = ProblemConfig::load(&directory)?;
 
-                build_solution(&problem_config.build)?;
+                build_solution(&directory, &problem_config.build)?;
 
                 let sample_dir = if problem_config.samples.is_relative() {
                     directory.join(&problem_config.samples)
@@ -413,10 +428,10 @@ impl Args {
 
                 let samples = load_test_cases(&sample_dir)?;
 
-                test_solution(&problem_config.run, &samples)?;
+                test_solution(&directory, &problem_config.run, &samples)?;
             }
 
-            Command::Template(TemplateCommand::New { name }) => {
+            SubCommand::Template(TemplateSubCommand::New { name }) => {
                 let template_dir = config_home.join("templates").join(name);
 
                 if template_dir.exists() {
@@ -440,7 +455,7 @@ impl Args {
                 }
             }
 
-            Command::Template(TemplateCommand::List) => {
+            SubCommand::Template(TemplateSubCommand::List) => {
                 let templates_dir = config_home.join("templates");
 
                 let mut templates = Vec::new();
@@ -507,16 +522,124 @@ fn problem_exists(domain: &str, problem: &str) -> Result<bool> {
     }
 }
 
-fn build_solution(build_commands: &[String]) -> Result<()> {
-    unimplemented!()
+fn build_solution(directory: impl AsRef<Path>, build_commands: &[String]) -> Result<()> {
+    let current_dir = directory.as_ref().canonicalize()?;
+
+    for command in build_commands {
+        let status = Command::new("sh")
+            .arg("-c")
+            .arg(command)
+            .current_dir(&current_dir)
+            .status()?;
+
+        if !status.success() {
+            Err(Error::BuildCommandFailed { command: command.clone() })?;
+        }
+    }
+
+    Ok(())
 }
 
 fn load_test_cases(path: impl AsRef<Path>) -> Result<Vec<TestCase>> {
-    unimplemented!()
+    let mut sets = HashMap::new();
+
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_file() {
+            if let Some(name) = path.file_stem().and_then(|n| n.to_str()) {
+                let name = name.to_owned();
+
+                let extension = path.extension();
+                let extension_is = |ext: &str| extension.filter(|e| *e == ext).is_some();
+
+                if  extension_is("in") {
+                    sets.entry(name).or_insert((None, None)).0 = Some(path);
+                } else if extension_is("ans") {
+                    sets.entry(name).or_insert((None, None)).1 = Some(path);
+                }
+            }
+        }
+    }
+
+    let mut test_cases: Vec<_> = sets.into_iter()
+        .filter_map(|(name, pair)| match pair {
+            (Some(input), Some(answer)) => Some(TestCase {
+                name,
+                input,
+                answer
+            }),
+            _ => None
+        })
+        .collect();
+
+    test_cases.sort_by(|a, b| a.name.cmp(&b.name));
+
+    Ok(test_cases)
 }
 
-fn test_solution(run_commands: &[String], cases: &[TestCase]) -> Result<Vec<TestCase>> {
-    unimplemented!()
+fn test_solution(directory: impl AsRef<Path>, run_commands: &[String], cases: &[TestCase]) -> Result<()> {
+    let current_dir = directory.as_ref().canonicalize()?;
+
+    let n_commands = run_commands.len();
+    if n_commands == 0 {
+        Err(Error::RunCommandsMissing)?;
+    }
+
+    for case in cases {
+        println!("Running test case: {}", case.name);
+
+        if n_commands > 1 {
+            for command in run_commands[..n_commands - 1].iter() {
+                let status = Command::new("sh")
+                    .arg("-c")
+                    .arg(command)
+                    .current_dir(&current_dir)
+                    .status()?;
+
+                if !status.success() {
+                    Err(Error::BuildCommandFailed { command: command.clone() })?;
+                }
+            }
+        }
+
+        let final_run_command = &run_commands[n_commands - 1];
+        let output = Command::new("sh")
+            .arg("-c")
+            .arg(final_run_command)
+            .current_dir(&current_dir)
+            .stdin(fs::File::open(&case.input)?)
+            .output()?;
+
+        if !output.status.success() {
+            let error = Error::RunCommandFailed { command: final_run_command.clone() }; 
+            error!("{}", error);
+        } else {
+            let mut answer = fs::File::open(&case.answer)?;
+            let mut expected = Vec::new();
+            answer.read_to_end(&mut expected)?;
+
+            let mut term = term::stdout().unwrap();
+            if output.stdout == expected {
+                term.fg(term::color::GREEN).unwrap();
+                println!("Correct");
+                term.reset().unwrap();
+            } else {
+                term.fg(term::color::RED).unwrap();
+                println!("Wrong Answer");
+                term.reset().unwrap();
+
+                let out = from_utf8(&output.stdout).map_err(Error::InvalidUtf8Answer)?;
+                let ans = from_utf8(&expected).map_err(Error::InvalidUtf8Answer)?;
+
+                println!("Found:\n{}", out);
+                println!("Expected:\n{}", ans);
+            }
+        }
+    }
+
+    Ok(())
 }
 
 fn download_samples(domain: &str, problem: &str) -> Result<Vec<Sample>> {
