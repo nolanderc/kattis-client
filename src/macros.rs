@@ -15,7 +15,7 @@ macro_rules! error {
         let mut term = term::stderr().unwrap();
         term.fg(term::color::RED).unwrap();
         term.attr(term::Attr::Bold).unwrap();
-        eprint!("Errror: ");
+        eprint!("Error: ");
         term.reset().unwrap();
         eprintln!($($args)*);
     }
