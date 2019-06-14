@@ -71,6 +71,9 @@ pub enum Error {
     #[fail(display = "Failed to extract submission id from string: {:?}", response)]
     SubmissionIdExtractFailed { response: String },
 
+    #[fail(display = "Failed to read submission status: {}", _0)]
+    SubmissionRowParse(crate::session::ParseSubmissionRowError),
+
 
     #[fail(display = "{}", _0)]
     LanguageParse(#[cause] crate::language::LanguageParseError),

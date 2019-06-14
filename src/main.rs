@@ -6,10 +6,12 @@ mod config;
 mod credentials;
 mod error;
 mod language;
+mod query;
+mod session;
 mod util;
 
-use reqwest::{multipart, Client, StatusCode};
-use std::collections::HashMap;
+use reqwest::StatusCode;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
@@ -20,8 +22,9 @@ use zip::ZipArchive;
 
 use crate::args::*;
 use crate::config::*;
-use crate::credentials::*;
 use crate::error::*;
+use crate::query::{Response as QueryResponse, *};
+use crate::session::*;
 
 #[derive(Debug, Clone)]
 struct Sample {
@@ -41,9 +44,6 @@ struct Template {
     name: String,
     path: PathBuf,
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
-struct SubmissionId(u32);
 
 fn main() {
     let args = Args::from_args();
@@ -104,9 +104,9 @@ fn execute(args: Args) -> Result<()> {
             solution_config.save_in(&directory)?;
 
             match Sample::download(hostname, &command.problem) {
-                Err(Error::DownloadSample { code: StatusCode::NOT_FOUND }) => {
-                    warn!("No samples found for problem.")
-                }
+                Err(Error::DownloadSample {
+                    code: StatusCode::NOT_FOUND,
+                }) => warn!("No samples found for problem."),
                 Err(e) => warn!("{}", e),
                 Ok(samples) => {
                     let sample_dir = if solution_config.samples.is_relative() {
@@ -217,91 +217,91 @@ fn execute(args: Args) -> Result<()> {
             let mainclass = submit.mainclass.or(solution_config.submission.mainclass);
 
             let submission = Submission {
-                files, 
+                files,
                 language,
                 mainclass,
             };
 
             // TODO: ask for confirmation
+            if submit.force || confirm_submission(&submission) == QueryResponse::Yes {
+                let mut session = Session::new(&hostname)?;
 
-            let mut client = Client::builder()
-                .cookie_store(true)
-                .build()?;
+                let submission_id = session.submit(&problem, submission)?;
 
-            let credentials = Credentials::load(&hostname)?;
-            login(&mut client, &credentials)?;
+                println!("Submission ID: {}", submission_id);
 
-            let submit_url = &credentials.kattis.submissionurl;
-            let submission_id = submit_files(&mut client, submit_url, &problem, &submission)?;
-            println!("Submission ID: {}", submission_id);
+                // TODO: track progress or, if configured, ask to open in browser
 
-            // TODO: track progress or, if configured, ask to open in browser
+                track_submission_progress(&mut session, submission_id)?;
+            } else {
+                println!("Cancelled submission.");
+            }
         }
     }
 
     Ok(())
 }
 
-// We need the authentication cookies from Kattis in order to submit
-fn login(client: &mut Client, creds: &Credentials) -> Result<()> {
-    let mut form = HashMap::new();
-    form.insert("user", creds.user.user.clone());
-    form.insert("script", "false".to_owned());
-    if let Some(password) = creds.user.password.clone() {
-        form.insert("password", password);
-    }
-    if let Some(token) = creds.user.token.clone() {
-        form.insert("token", token);
+fn confirm_submission(submission: &Submission) -> QueryResponse {
+    println!("Language: {}", submission.language);
+
+    println!("Files:");
+    for file in &submission.files {
+        println!("  - {}", file.display());
     }
 
-    let response = client
-        .post(&creds.kattis.loginurl)
-        .form(&form)
-        .send()?;
+    let main = submission
+        .mainclass
+        .as_ref()
+        .map(|m| m.as_str())
+        .unwrap_or("");
+    println!("Main Class: {}", main);
 
-    let status = response.status();
-    match status {
-        StatusCode::OK => Ok(()),
-        code => Err(Error::LoginFailed { code }),
-    }
+    let response = Query::new("Proceed with the submission?")
+        .default(QueryResponse::No)
+        .confirm();
+
+    response
 }
 
-fn submit_files<'a>(
-    client: &mut Client,
-    url: &str,
-    problem: &str,
-    submission: &Submission
-) -> Result<SubmissionId> {
-    let mut form = multipart::Form::new()
-        .text("submit", "true")
-        .text("submit_ctr", "2")
-        .text("language", format!("{}", submission.language))
-        .text("mainclass", submission.mainclass.clone().unwrap_or("".to_owned()))
-        .text("problem", problem.to_owned())
-        .text("tag", "")
-        .text("script", "true");
+/// Track the submission process by repeatedly polling the submissions page and printing the result
+/// until either:
+/// - One of the test cases fail
+/// - All test cases are successful
+fn track_submission_progress(session: &mut Session, id: SubmissionId) -> Result<()> {
+    let mut solved_cases = HashSet::new();
 
-    for path in submission.files.iter() {
-        let part = multipart::Part::file(path)?
-            .mime_str("application/octet-stream")?;
-        form = form.part("sub_file[]", part);
+    loop {
+        let submission = session.submission_status(id)?;
+
+        if submission.status == Status::Compiling {
+            println!("Compiling...");
+        } else {
+            for test_case in &submission.test_cases {
+                if test_case.status != Status::NotChecked {
+                    println!(
+                        "Test Case {id}/{count}: {status}",
+                        id = test_case.id,
+                        count = submission.test_cases.len(),
+                        status = test_case.status
+                    );
+                }
+
+                if test_case.status == Status::Accepted {
+                    solved_cases.insert(test_case.clone());
+                }
+            }
+        }
+
+        if submission.is_terminated() {
+            println!("{}", submission.status);
+            break
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
     }
-    
-    let request = client.post(url)
-        .multipart(form);
 
-    let mut response = request.send()?;
-
-    let status = response.status();
-
-    match status {
-        StatusCode::OK => {
-            let text = response.text()?;
-            let id = SubmissionId::extract_from_response(&text)?;
-            Ok(id)
-        },
-        code => Err(Error::SubmitFailed { code }),
-    }
+    Ok(())
 }
 
 fn assert_problem_exists(hostname: &str, problem: &str) -> Result<()> {
@@ -571,22 +571,5 @@ impl Template {
         }
 
         Ok(templates)
-    }
-}
-
-impl SubmissionId {
-    pub fn extract_from_response(response: &str) -> Result<SubmissionId> {
-        let is_digit = |ch: char| ch.is_digit(10);
-        let is_not_digit = |ch: char| !ch.is_digit(10);
-
-        if let Some(id_start) = response.find(is_digit) {
-            let trimmed = &response[id_start..];
-            let id_end = trimmed.find(is_not_digit).unwrap_or(trimmed.len());
-            let id = trimmed[..id_end].parse()
-                .expect("Could not parse submission id");
-            Ok(SubmissionId(id))
-        } else {
-            Err(Error::SubmissionIdExtractFailed { response: response.to_owned() })
-        }
     }
 }
