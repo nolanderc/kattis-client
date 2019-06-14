@@ -77,7 +77,11 @@ fn execute(args: Args) -> Result<()> {
         SubCommand::New(command) => {
             let hostname = args.hostname.as_ref().unwrap_or(&config.default_hostname);
 
-            let template = Template::find(command.template, &config)?;
+            let template_name = command
+                .template
+                .or_else(|| config.default_template.clone())
+                .ok_or(Error::TemplateNotSpecified)?;
+            let template = Template::find(template_name)?;
 
             let directory = match command.directory {
                 Some(dir) => dir,
@@ -312,8 +316,8 @@ fn track_submission_progress(session: &mut Session, id: SubmissionId) -> Result<
             eprint!("Submission Status: ");
             display_status(submission.status);
 
-            eprintln!("CPU Time: {}", submission.cpu_time);
-            eprintln!("Date: {}", submission.date);
+            eprintln!("Time: {}", submission.date);
+            eprintln!("CPU: {}", submission.cpu_time);
 
             break;
         }
@@ -539,20 +543,26 @@ impl Template {
         Ok(dir)
     }
 
-    pub fn find(name: Option<String>, config: &Config) -> Result<Template> {
-        let name = name
-            .or_else(|| config.default_template.clone())
-            .ok_or(Error::TemplateNotSpecified)?;
+    pub fn find(name: String) -> Result<Template> {
+        let template_dir = Template::dir()?;
 
-        let template_dir = Template::dir()?.join(&name);
+        let candidates = util::file_name_matches(&name, &template_dir)?;
 
-        if !template_dir.is_dir() {
-            Err(Error::TemplateNotFound { path: template_dir })
+        if candidates.len() == 0 {
+            Err(Error::NoMatchingTemplate { name })
+        } else if candidates.len() > 1 {
+            Err(Error::MultipleTemplateCandidates { name })
         } else {
-            Ok(Template {
-                name,
-                path: template_dir,
-            })
+            let template = candidates.into_iter().next().unwrap();
+
+            if !template.is_dir() {
+                Err(Error::TemplateNotDirectory { path: template })
+            } else {
+                Ok(Template {
+                    name,
+                    path: template,
+                })
+            }
         }
     }
 

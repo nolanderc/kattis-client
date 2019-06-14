@@ -20,7 +20,7 @@ pub struct Args {
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 pub enum SubCommand {
-    /// Creates a new solution to a problem in a new directory.
+    /// Create a solution to a problem in a new directory.
     ///
     /// Creates a new test suite from the samples from the problem page and configures the
     /// submission.
@@ -29,23 +29,23 @@ pub enum SubCommand {
     /// Downloads the samples from the problem page and stores them as separate files.
     Samples(DownloadSamples),
 
-    /// Tests the solution in a directory against the samples.
+    /// Tests the solution in a directory against the problem samples.
     ///
-    /// Builds the solution in a directory (defaults to the current) and validates the solution
+    /// Builds the solution in a directory (defaults to the current working directory) and validates the solution
     /// against the problem samples.
     Test(TestSolution),
 
     /// Submit a solution to the judge.
     Submit(SubmitSolution),
 
-    /// View, create and modify templates.
+    /// View, create and modify solution templates.
     Template(TemplateSubCommand),
 }
 
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 pub struct NewSolution {
-    /// The template to use.
+    /// The template to use. Can be configured.
     #[structopt(short = "t", long = "template")]
     pub template: Option<String>,
 
@@ -114,6 +114,7 @@ pub enum TemplateSubCommand {
     },
 
     /// Print the names and paths of all templates.
+    #[structopt(name = "show", alias="list")]
     List,
 }
 

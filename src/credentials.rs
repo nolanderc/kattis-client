@@ -35,16 +35,26 @@ pub enum CredentailsParseError {
 }
 
 impl Credentials {
-    pub fn load(domain: &str) -> Result<Credentials> {
+    /// Finds credentials for the credentials file matching the name
+    pub fn find(name: &str) -> Result<Credentials> {
         let home = Config::home_directory()?;
-        let path = home.join("credentials").join(domain);
+        let credentials_dir = home.join("credentials");
 
-        if !path.is_file() {
-            return Err(Error::CredentialsMissing { path });
+        let candidates = util::file_name_matches(name, &credentials_dir)?;
+
+        if candidates.len() == 0 {
+            return Err(Error::NoMatchingCredentials {
+                name: name.to_owned(),
+            });
+        } else if candidates.len() > 1 {
+            return Err(Error::MultipleCredentialCandidates {
+                name: name.to_owned(),
+            });
+        } else {
+            let path = candidates.into_iter().next().unwrap();
+            let content = util::read_file(path)?;
+            Credentials::parse(&content)
         }
-
-        let content = util::read_file(path)?;
-        Credentials::parse(&content)
     }
 
     pub fn parse(text: &str) -> Result<Credentials> {

@@ -76,7 +76,7 @@ pub struct SubmissionRow {
 impl Session {
     pub fn new(hostname: &str) -> Result<Session> {
         let client = Client::builder().cookie_store(true).build()?;
-        let credentials = Credentials::load(hostname)?;
+        let credentials = Credentials::find(hostname)?;
 
         let session = Session {
             client,
