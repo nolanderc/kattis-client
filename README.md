@@ -23,8 +23,10 @@ cargo install --path .
 ## Example Usage
 
 To illustrate how this tool may be used, we are going to solve the problem
-[Aaah](https://openkattis.com/problems/aaah). You can find the configuration
-used in this example in the [examples](https://github.com/nolanderc/kattis-client/tree/master/examples) directory.
+[Aaah](https://openkattis.com/problems/aaah). You can find the configuration and
+files used in this example in the
+[examples](https://github.com/nolanderc/kattis-client/tree/master/examples)
+directory.
 
 If you don't already have one, you have to create a new [template](#templates).
 A template is basically a folder containing a barebones solution with all
@@ -159,7 +161,8 @@ You can override the default configuration directory by setting the
 `KATTIS_CONFIG_HOME` environment variable.
 
 Inside the configuration directory you can create a global configuration file
-`kattis-global.yml`.
+`kattis-global.yml`. You may print the path to this file by running `kattis
+config show`
 
 ### Credentials
 

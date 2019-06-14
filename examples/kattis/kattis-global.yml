@@ -1,0 +1,3 @@
+---
+default_hostname: open.kattis.com
+default_template: rust

@@ -1,0 +1,11 @@
+---
+problem: aaah
+hostname: open.kattis.com
+samples: "./samples"
+language: rust
+files:
+    - main.rs
+build:
+    - rustc -g --crate-type bin main.rs -o a.out
+run:
+    - ./a.out
