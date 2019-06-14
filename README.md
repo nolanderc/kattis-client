@@ -212,7 +212,7 @@ wish to use with a flag. This behaviour can be overriden by changing the
 
 #### The `kattis.yml` file
 
-This YAML file you may configure how the template is built, which files are
+In this YAML file you may configure how the template is built, which files are
 submitted, and so on:
 
 | Field       | Description                                                  |
