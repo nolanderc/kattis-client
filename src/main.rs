@@ -318,6 +318,8 @@ fn track_submission_progress(session: &mut Session, id: SubmissionId) -> Result<
             eprintln!("Time: {}", submission.date);
             eprintln!("CPU: {}", submission.cpu_time);
 
+            // TODO: if there was a compile error, get the build log.
+
             break;
         }
 
@@ -436,6 +438,7 @@ fn test_solution(
 
                 let input = util::read_file(&case.input)?;
 
+                println!();
                 println!("Input:\n{}", input);
                 println!("Found:\n{}", output);
                 println!("Expected:\n{}", expected);

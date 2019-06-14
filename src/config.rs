@@ -121,7 +121,7 @@ impl Config {
     }
 
     pub fn file_path() -> Result<PathBuf> {
-        let path = Self::home_directory()?.join("kattis.yml");
+        let path = Self::home_directory()?.join("kattis-global.yml");
         Ok(path)
     }
 
@@ -140,7 +140,7 @@ impl Config {
             Self::init_home_directory(&home)?;
         }
 
-        let config_file = home.join("kattis.yml");
+        let config_file = home.join("kattis-global.yml");
 
         let config = if !config_file.exists() {
             let config = Config::default();
