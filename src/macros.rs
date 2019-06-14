@@ -1,23 +1,40 @@
+macro_rules! stderr_style {
+    ([$($attr:expr),*], { $($cmd:tt)+ }) => {
+        let mut term = term::stderr().unwrap();
+        $(
+            let _ = term.attr($attr);
+        )+
+        $($cmd)+;
+        let _ = term.reset();
+    };
+}
 
 macro_rules! warn {
     ($($args:tt)*) => {{
-        let mut term = term::stderr().unwrap();
-        term.fg(term::color::YELLOW).unwrap();
-        term.attr(term::Attr::Bold).unwrap();
-        eprint!("Warning: ");
-        term.reset().unwrap();
+        stderr_style!(
+            [
+                term::Attr::ForegroundColor(term::color::YELLOW),
+                term::Attr::Bold
+            ],
+            { 
+                eprint!("Warning: ");
+            }
+        );
         eprintln!($($args)*);
     }}
 }
 
 macro_rules! error {
     ($($args:tt)*) => {
-        let mut term = term::stderr().unwrap();
-        term.fg(term::color::RED).unwrap();
-        term.attr(term::Attr::Bold).unwrap();
-        eprint!("Error: ");
-        term.reset().unwrap();
+        stderr_style!(
+            [
+                term::Attr::ForegroundColor(term::color::RED),
+                term::Attr::Bold
+            ],
+            {
+                eprint!("Error: ");
+            }
+        );
         eprintln!($($args)*);
     }
 }
-

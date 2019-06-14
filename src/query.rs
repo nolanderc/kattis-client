@@ -27,14 +27,14 @@ impl Query {
     }
 
     pub fn confirm(&self) -> Response {
-        print!("{}", self.query);
+        eprint!("{}", self.query);
 
         let options = match self.default_response {
             Response::Yes => "Y/n",
             Response::No => "y/N",
         };
 
-        print!(" ({}) ", options);
+        eprint!(" ({}) ", options);
         let _ = stdout().lock().flush();
 
         let response = stdin()

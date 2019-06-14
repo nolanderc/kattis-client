@@ -18,6 +18,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::from_utf8;
 use structopt::StructOpt;
+use term::{color, Attr};
 use zip::ZipArchive;
 
 use crate::args::*;
@@ -222,7 +223,6 @@ fn execute(args: Args) -> Result<()> {
                 mainclass,
             };
 
-            // TODO: ask for confirmation
             if submit.force || confirm_submission(&submission) == QueryResponse::Yes {
                 let mut session = Session::new(&hostname)?;
 
@@ -230,7 +230,7 @@ fn execute(args: Args) -> Result<()> {
 
                 println!("Submission ID: {}", submission_id);
 
-                // TODO: track progress or, if configured, ask to open in browser
+                // TODO: if configured, (ask to) open in browser instead
 
                 track_submission_progress(&mut session, submission_id)?;
             } else {
@@ -269,33 +269,53 @@ fn confirm_submission(submission: &Submission) -> QueryResponse {
 /// - One of the test cases fail
 /// - All test cases are successful
 fn track_submission_progress(session: &mut Session, id: SubmissionId) -> Result<()> {
-    let mut solved_cases = HashSet::new();
+    let mut displayed_cases = HashSet::new();
+
+    let display_status = |status: Status| {
+        let color = if status == Status::Accepted {
+            color::GREEN
+        } else {
+            color::RED
+        };
+
+        stderr_style!([Attr::ForegroundColor(color), Attr::Bold], {
+            eprintln!("{}", status)
+        });
+    };
 
     loop {
         let submission = session.submission_status(id)?;
 
-        if submission.status == Status::Compiling {
-            println!("Compiling...");
-        } else {
-            for test_case in &submission.test_cases {
-                if test_case.status != Status::NotChecked {
-                    println!(
-                        "Test Case {id}/{count}: {status}",
-                        id = test_case.id,
-                        count = submission.test_cases.len(),
-                        status = test_case.status
-                    );
-                }
+        for test_case in &submission.test_cases {
+            let checked = test_case.status != Status::NotChecked;
+            let not_displayed = !displayed_cases.contains(test_case);
 
-                if test_case.status == Status::Accepted {
-                    solved_cases.insert(test_case.clone());
-                }
+            if checked && not_displayed {
+                eprint!(
+                    "Test Case {id}/{count}: ",
+                    id = test_case.id,
+                    count = submission.test_cases.len()
+                );
+
+                displayed_cases.insert(test_case.clone());
+                display_status(test_case.status);
             }
         }
 
+        if displayed_cases.len() == 0 {
+            eprintln!("{}...", submission.status);
+        }
+
         if submission.is_terminated() {
-            println!("{}", submission.status);
-            break
+            eprintln!();
+
+            eprint!("Submission Status: ");
+            display_status(submission.status);
+
+            eprintln!("CPU Time: {}", submission.cpu_time);
+            eprintln!("Date: {}", submission.date);
+
+            break;
         }
 
         std::thread::sleep(std::time::Duration::from_millis(100));
