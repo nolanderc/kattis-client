@@ -1,15 +1,19 @@
 
 # Kattis Client
 
+> Warning: This is an unofficial client and may break without notice.
+
 
 ## Features
 
+- Minimize typing by using code templates.
+- Automatically download problem samples and test your solution against them.
+- Submit and get updates on your solutions without leaving the terminal.
 
-## Setup
 
-### Installation
+## Installation
 
-#### Using Cargo
+### Using Cargo
 
 ```
 git clone https://github.com/nolanderc/kattis-client
@@ -23,7 +27,7 @@ cargo install --path .
 ## Example Usage
 
 To illustrate how this tool may be used, we are going to solve the problem
-[Aaah](https://openkattis.com/problems/aaah). You can find the configuration and
+[Aaah](https://open.kattis.com/problems/aaah). You can find the configuration and
 files used in this example in the
 [examples](https://github.com/nolanderc/kattis-client/tree/master/examples)
 directory.
@@ -225,7 +229,7 @@ submitted, and so on:
 | `run`       | The command to run in order to run the solution              |
 
 > Note that for interpreted languages such as Python there's no need for a build
-> step, as such you may leave it empty.
+> step, as such you may leave the `build` field empty.
 
 When a template is used to create a new solution to a problem using the `kattis
 new` command two additional fields are created:
