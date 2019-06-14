@@ -7,12 +7,6 @@ use crate::language::*;
 #[derive(Debug, StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 pub struct Args {
-    /// The hostname to operate on. The default is `open.kattis.com`.
-    ///
-    /// May be configured in the configuration file.
-    #[structopt(short = "h", long = "hostname")]
-    pub hostname: Option<String>,
-
     #[structopt(subcommand)]
     pub command: SubCommand,
 }
@@ -58,6 +52,12 @@ pub struct NewSolution {
     /// The name of the new directory. Defaults to the id of the problem.
     #[structopt(short = "d", long = "dir")]
     pub directory: Option<PathBuf>,
+
+    /// The hostname to operate on. The default is `open.kattis.com`.
+    ///
+    /// May be configured to another default in the configuration file.
+    #[structopt(short = "h", long = "hostname")]
+    pub hostname: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -72,6 +72,12 @@ pub struct DownloadSamples {
     /// The directory to store the samples within.
     #[structopt(short = "d", long = "dir", default_value = "./samples")]
     pub directory: PathBuf,
+
+    /// The hostname to operate on. The default is `open.kattis.com`.
+    ///
+    /// May be configured to another default in the configuration file.
+    #[structopt(short = "h", long = "hostname")]
+    pub hostname: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -99,7 +105,13 @@ pub struct SubmitSolution {
 
     /// Don't ask for confirmation before submitting.
     #[structopt(short = "f", long = "force")]
-    pub force: bool
+    pub force: bool,
+
+    /// The hostname to operate on. The default is `open.kattis.com`.
+    ///
+    /// May be configured to another default in the configuration file.
+    #[structopt(short = "h", long = "hostname")]
+    pub hostname: Option<String>,
 }
 
 #[derive(Debug, StructOpt)]

@@ -63,7 +63,7 @@ fn execute(args: Args) -> Result<()> {
 
     match args.command {
         SubCommand::Samples(command) => {
-            let hostname = args.hostname.as_ref().unwrap_or(&config.default_hostname);
+            let hostname = command.hostname.as_ref().unwrap_or(&config.default_hostname);
 
             assert_problem_exists(hostname, &command.problem)?;
 
@@ -75,7 +75,7 @@ fn execute(args: Args) -> Result<()> {
         }
 
         SubCommand::New(command) => {
-            let hostname = args.hostname.as_ref().unwrap_or(&config.default_hostname);
+            let hostname = command.hostname.as_ref().unwrap_or(&config.default_hostname);
 
             let template_name = command
                 .template
@@ -205,8 +205,6 @@ fn execute(args: Args) -> Result<()> {
         SubCommand::Submit(submit) => {
             let solution_config = SolutionConfig::load(&submit.directory)?;
 
-            let hostname = args.hostname.unwrap_or(solution_config.hostname);
-
             let problem = solution_config.problem;
             let files = solution_config
                 .submission
@@ -228,14 +226,13 @@ fn execute(args: Args) -> Result<()> {
             };
 
             if submit.force || confirm_submission(&submission) == QueryResponse::Yes {
+                let hostname = submit.hostname.unwrap_or(solution_config.hostname);
                 let mut session = Session::new(&hostname)?;
 
                 let submission_id = session.submit(&problem, submission)?;
-
                 println!("Submission ID: {}", submission_id);
 
                 // TODO: if configured, (ask to) open in browser instead
-
                 track_submission_progress(&mut session, submission_id)?;
             } else {
                 println!("Cancelled submission.");
