@@ -26,6 +26,7 @@ use crate::config::*;
 use crate::error::*;
 use crate::query::{Response as QueryResponse, *};
 use crate::session::*;
+use crate::credentials::Credentials;
 
 #[derive(Debug, Clone)]
 struct Sample {
@@ -176,30 +177,12 @@ fn execute(args: Args) -> Result<()> {
         SubCommand::Template(TemplateSubCommand::List) => {
             let templates_dir = Template::dir()?;
 
-            let templates = Template::list(templates_dir)?;
+            let matches = util::file_name_matches(".*", templates_dir)?;
+            let templates = matches
+                .iter()
+                .filter(|path| path.is_dir());
 
-            if templates.len() > 0 {
-                let max_len = templates
-                    .iter()
-                    .map(|template| template.name.chars().count())
-                    .max()
-                    .unwrap();
-
-                for template in templates {
-                    let chars = template.name.chars().count();
-                    print!("{}", template.name);
-                    for _ in chars..max_len + 2 {
-                        print!(" ")
-                    }
-
-                    let path_name = template.path.into_os_string().into_string();
-                    if let Ok(path) = path_name {
-                        println!("{}", path);
-                    } else {
-                        println!();
-                    }
-                }
-            }
+            list_path_filenames(templates);
         }
 
         SubCommand::Submit(submit) => {
@@ -225,7 +208,9 @@ fn execute(args: Args) -> Result<()> {
                 mainclass,
             };
 
-            if submit.force || confirm_submission(&submission) == QueryResponse::Yes {
+            print_submission(&submission);
+
+            if submit.force || confirm_submission() == QueryResponse::Yes {
                 let hostname = submit.hostname.unwrap_or(solution_config.hostname);
                 let mut session = Session::new(&hostname)?;
 
@@ -238,12 +223,27 @@ fn execute(args: Args) -> Result<()> {
                 println!("Cancelled submission.");
             }
         }
+
+        SubCommand::Config(ConfigSubCommand::Show) => {
+            println!("{}", Config::file_path()?.display())
+        }
+
+        SubCommand::Config(ConfigSubCommand::Credentials(CredentialsSubCommand::List)) => {
+            let dir = Credentials::directory()?;
+
+            let matches = util::file_name_matches(".*", dir)?;
+            let files = matches
+                .iter()
+                .filter(|path| path.is_file());
+
+            list_path_filenames(files);
+        }
     }
 
     Ok(())
 }
 
-fn confirm_submission(submission: &Submission) -> QueryResponse {
+fn print_submission(submission: &Submission) {
     println!("Language: {}", submission.language);
 
     println!("Files:");
@@ -257,7 +257,9 @@ fn confirm_submission(submission: &Submission) -> QueryResponse {
         .map(|m| m.as_str())
         .unwrap_or("");
     println!("Main Class: {}", main);
+}
 
+fn confirm_submission() -> QueryResponse {
     let response = Query::new("Proceed with the submission?")
         .default(QueryResponse::No)
         .confirm();
@@ -444,6 +446,37 @@ fn test_solution(
     Ok(())
 }
 
+fn list_path_filenames<'a>(paths: impl IntoIterator<Item = &'a PathBuf>) {
+    let paths = paths
+        .into_iter()
+        .map(|path| (path.file_name().and_then(|name| name.to_str()), path))
+        .collect::<Vec<_>>();
+
+    if paths.len() > 0 {
+        let max_len = paths
+            .iter()
+            .filter_map(|(name, _)| name.as_ref())
+            .map(|name| name.chars().count())
+            .max()
+            .unwrap();
+
+        for (name, path) in paths {
+            let chars = if let Some(name) = name {
+                print!("{}", name);
+                name.chars().count()
+            } else { 
+                0 
+            };
+
+            for _ in chars..max_len + 2 {
+                print!(" ")
+            }
+
+            println!("{}", path.display());
+        }
+    }
+}
+
 impl Sample {
     fn download(hostname: &str, problem: &str) -> Result<Vec<Sample>> {
         let url = format!(
@@ -580,23 +613,5 @@ impl Template {
         fs_extra::copy_items(&template_items, target, &options)?;
 
         Ok(())
-    }
-
-    fn list(directory: impl AsRef<Path>) -> Result<Vec<Template>> {
-        let mut templates = Vec::new();
-
-        for entry in fs::read_dir(&directory)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_dir() {
-                let file_name = entry.file_name().into_string();
-
-                if let Ok(name) = file_name {
-                    templates.push(Template { name, path });
-                }
-            }
-        }
-
-        Ok(templates)
     }
 }

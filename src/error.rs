@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[derive(Debug, Fail, From)]
 pub enum Error {
     #[fail(
-        display = "Could not find the configuration directory. Try setting the KATTIS_CONFIG_HOME
+        display = "Could not find the configuration directory. Try setting the KATTIS_CONFIG_HOME \
            environment variable"
     )]
     MissingConfigDirectory,
@@ -33,7 +33,8 @@ pub enum Error {
     TemplateNotDirectory { path: PathBuf },
 
     #[fail(
-        display = "No templete was specified. Try running again with the -t flag or set the `default_template` in the configuration file."
+        display = "No templete was specified. Try running again with the -t flag or set the \
+        `default_template` in the global configuration file."
     )]
     TemplateNotSpecified,
 
@@ -73,10 +74,19 @@ pub enum Error {
     #[fail(display = "Failed to submit to Kattis: {}", code)]
     SubmitFailed { code: StatusCode },
 
-    #[fail(display = "No credentials match the hostname '{}'", name)]
+    #[fail(
+        display = "No credentials match the hostname '{}'. Make sure you have downloaded them \
+           from 'https://open.kattis.com/download/kattisrc' and placed them under the credentials \
+           directory. You may list existing credentials using 'kattis config credentials list'.",
+        name
+    )]
     NoMatchingCredentials { name: String },
 
-    #[fail(display = "Multiple credentials match the hostname '{}'", name)]
+    #[fail(
+        display = "Multiple credentials match the hostname '{}' You may list existing credentials \
+                   using 'kattis config credentials list'.",
+        name
+    )]
     MultipleCredentialCandidates { name: String },
 
     #[fail(display = "When parsing credentials: {}", _0)]

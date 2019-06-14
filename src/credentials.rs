@@ -1,5 +1,6 @@
 use failure::Fail;
 use serde_derive::*;
+use std::path::PathBuf;
 
 use crate::config::*;
 use crate::error::*;
@@ -35,10 +36,16 @@ pub enum CredentailsParseError {
 }
 
 impl Credentials {
-    /// Finds credentials for the credentials file matching the name
-    pub fn find(name: &str) -> Result<Credentials> {
+    pub fn directory() -> Result<PathBuf> {
         let home = Config::home_directory()?;
         let credentials_dir = home.join("credentials");
+
+        Ok(credentials_dir)
+    }
+
+    /// Finds credentials for the credentials file matching the name
+    pub fn find(name: &str) -> Result<Credentials> {
+        let credentials_dir = Self::directory()?;
 
         let candidates = util::file_name_matches(name, &credentials_dir)?;
 

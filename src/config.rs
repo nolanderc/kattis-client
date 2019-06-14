@@ -120,10 +120,16 @@ impl Config {
             .ok_or(Error::MissingConfigDirectory)
     }
 
+    pub fn file_path() -> Result<PathBuf> {
+        let path = Self::home_directory()?.join("kattis.yml");
+        Ok(path)
+    }
+
     pub fn init_home_directory(home: impl AsRef<Path>) -> Result<()> {
         let home = home.as_ref();
         fs::create_dir(home)?;
         fs::create_dir(home.join("templates"))?;
+        fs::create_dir(home.join("credentials"))?;
         Ok(())
     }
 

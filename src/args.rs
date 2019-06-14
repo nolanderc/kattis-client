@@ -1,6 +1,5 @@
-
-use structopt::StructOpt;
 use std::path::PathBuf;
+use structopt::StructOpt;
 
 use crate::language::*;
 
@@ -34,6 +33,9 @@ pub enum SubCommand {
 
     /// View, create and modify solution templates.
     Template(TemplateSubCommand),
+
+    /// View and change configuration parameters.
+    Config(ConfigSubCommand),
 }
 
 #[derive(Debug, StructOpt)]
@@ -53,10 +55,10 @@ pub struct NewSolution {
     #[structopt(short = "d", long = "dir")]
     pub directory: Option<PathBuf>,
 
-    /// The hostname to operate on. The default is `open.kattis.com`.
+    /// The hostname to download from. The default is `open.kattis.com`.
     ///
     /// May be configured to another default in the configuration file.
-    #[structopt(short = "h", long = "hostname")]
+    #[structopt(long = "hostname")]
     pub hostname: Option<String>,
 }
 
@@ -73,10 +75,10 @@ pub struct DownloadSamples {
     #[structopt(short = "d", long = "dir", default_value = "./samples")]
     pub directory: PathBuf,
 
-    /// The hostname to operate on. The default is `open.kattis.com`.
+    /// The hostname to download from. The default is `open.kattis.com`.
     ///
     /// May be configured to another default in the configuration file.
-    #[structopt(short = "h", long = "hostname")]
+    #[structopt(long = "hostname")]
     pub hostname: Option<String>,
 }
 
@@ -107,10 +109,10 @@ pub struct SubmitSolution {
     #[structopt(short = "f", long = "force")]
     pub force: bool,
 
-    /// The hostname to operate on. The default is `open.kattis.com`.
+    /// The hostname to submit to. The default is `open.kattis.com`.
     ///
     /// May be configured to another default in the configuration file.
-    #[structopt(short = "h", long = "hostname")]
+    #[structopt(long = "hostname")]
     pub hostname: Option<String>,
 }
 
@@ -126,7 +128,26 @@ pub enum TemplateSubCommand {
     },
 
     /// Print the names and paths of all templates.
-    #[structopt(name = "show", alias="list")]
+    #[structopt(name = "show", alias = "list")]
     List,
 }
 
+#[derive(Debug, StructOpt)]
+#[structopt(rename_all = "kebab-case")]
+pub enum ConfigSubCommand {
+    /// Show the path to the global configuration file.
+    Show,
+
+    /// Manage credentials. Additional credentials can be downloaded from
+    /// http://<kattis>/download/kattisrc.
+    Credentials(CredentialsSubCommand),
+}
+
+#[derive(Debug, StructOpt)]
+#[structopt(rename_all = "kebab-case")]
+pub enum CredentialsSubCommand {
+    /// Print the names and paths of all credentials. Additional credentials can be downloaded from
+    /// http://<kattis>/download/kattisrc.
+    #[structopt(name = "show", alias = "list")]
+    List,
+}
