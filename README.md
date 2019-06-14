@@ -1,7 +1,8 @@
 
 # Kattis Client
 
-> Warning: This is an unofficial client and may break without notice.
+> Warning: This is an unofficial client and may break without notice. If it
+> does, please leave an issue.
 
 
 ## Features
