@@ -1,6 +1,6 @@
 use failure::Fail;
 use regex::Regex;
-use reqwest::{multipart, Client, StatusCode};
+use reqwest::{header, multipart, Client, StatusCode};
 use serde_derive::*;
 use std::convert::{TryFrom, TryInto};
 use std::str::FromStr;
@@ -75,7 +75,16 @@ pub struct SubmissionRow {
 
 impl Session {
     pub fn new(hostname: &str) -> Result<Session> {
-        let client = Client::builder().cookie_store(true).build()?;
+        let mut headers = header::HeaderMap::new();
+        headers.insert(
+            header::USER_AGENT,
+            "kattis-client 0.1.0 <https://github.com/nolanderc/kattis-client>>".parse().unwrap(),
+        );
+
+        let client = Client::builder()
+            .default_headers(headers)
+            .cookie_store(true)
+            .build()?;
         let credentials = Credentials::find(hostname)?;
 
         let session = Session {
@@ -203,8 +212,8 @@ impl SubmissionStatus {
     pub fn is_terminated(&self) -> bool {
         use Status::*;
         match self.status {
-            Accepted | WrongAnswer | RunTimeError | CompileError | MemoryLimitExceeded | TimeLimitExceeded
-            | Other(_) => true,
+            Accepted | WrongAnswer | RunTimeError | CompileError | MemoryLimitExceeded
+            | TimeLimitExceeded | Other(_) => true,
             Running | Compiling | New | NotChecked => false,
         }
     }
@@ -334,9 +343,6 @@ impl TestCase {
         let status_start = title.find(':').unwrap() + ": ".len();
         let status = title[status_start..].trim().parse()?;
 
-        Ok(TestCase {
-            id,
-            status,
-        })
+        Ok(TestCase { id, status })
     }
 }
