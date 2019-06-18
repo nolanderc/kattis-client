@@ -476,6 +476,8 @@ fn test_solution(
             let answer = from_utf8(&output.stdout).map_err(Error::InvalidUtf8Answer)?;
             let expected = util::read_file(&case.answer)?;
 
+            println!("Time: {:.6}", seconds);
+
             if answer == expected {
                 term.fg(term::color::GREEN).unwrap();
                 println!("Correct");
@@ -492,8 +494,6 @@ fn test_solution(
                 println!("Found:\n{}", answer);
                 println!("Expected:\n{}", expected);
             }
-
-            println!("Time: {:.6}", seconds)
         }
     }
 
