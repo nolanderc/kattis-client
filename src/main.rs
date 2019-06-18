@@ -141,7 +141,7 @@ fn execute(args: Args) -> Result<()> {
             }
         }
 
-        SubCommand::Test(TestSolution { directory, watch, clear }) => {
+        SubCommand::Test(TestSolution { directory, watch, clear, ignore, filter }) => {
             let solution_config = SolutionConfig::load(&directory)?;
 
             let sample_dir = if solution_config.samples.is_relative() {
@@ -155,7 +155,12 @@ fn execute(args: Args) -> Result<()> {
             }
 
             let test_samples = || -> Result<()> {
-                let samples = TestCase::load(&sample_dir)?;
+                let samples = TestCase::load(&sample_dir, |name| {
+                    let pass_filter = filter.as_ref().map(|f| f.is_match(name)).unwrap_or(true);
+                    let is_ignored = ignore.as_ref().map(|i| i.is_match(name)).unwrap_or(false);
+
+                    pass_filter && !is_ignored
+                })?;
 
                 if clear {
                     Command::new("clear").status()?;
@@ -580,7 +585,10 @@ impl Sample {
 }
 
 impl TestCase {
-    pub fn load(path: impl AsRef<Path>) -> Result<Vec<TestCase>> {
+    /// Load samples which names pass a predicate.
+    pub fn load<F>(path: impl AsRef<Path>, mut predicate: F) -> Result<Vec<TestCase>> 
+        where F: FnMut(&str) -> bool
+    {
         let mut sets = HashMap::new();
 
         for entry in fs::read_dir(path)? {
@@ -589,15 +597,17 @@ impl TestCase {
 
             if path.is_file() {
                 if let Some(name) = path.file_stem().and_then(|n| n.to_str()) {
-                    let name = name.to_owned();
+                    if predicate(name) {
+                        let name = name.to_owned();
 
-                    let extension = path.extension();
-                    let extension_is = |ext: &str| extension.filter(|e| *e == ext).is_some();
+                        let extension = path.extension();
+                        let extension_is = |ext: &str| extension.filter(|e| *e == ext).is_some();
 
-                    if extension_is("in") {
-                        sets.entry(name).or_insert((None, None)).0 = Some(path);
-                    } else if extension_is("ans") {
-                        sets.entry(name).or_insert((None, None)).1 = Some(path);
+                        if extension_is("in") {
+                            sets.entry(name).or_insert((None, None)).0 = Some(path);
+                        } else if extension_is("ans") {
+                            sets.entry(name).or_insert((None, None)).1 = Some(path);
+                        }
                     }
                 }
             }

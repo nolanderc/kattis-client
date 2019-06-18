@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use structopt::StructOpt;
+use regex::Regex;
 
 use crate::language::*;
 
@@ -96,6 +97,14 @@ pub struct TestSolution {
     /// Clear the screen before building and printing the test results. Works well in combination with '--watch'
     #[structopt(short = "c", long = "clear")]
     pub clear: bool,
+
+    /// Ignore samples matching a regex pattern. 
+    #[structopt(short = "i", long = "ignore")]
+    pub ignore: Option<Regex>,
+
+    /// Only test samples matching a regex pattern. 
+    #[structopt(short = "f", long = "filter")]
+    pub filter: Option<Regex>,
 }
 
 #[derive(Debug, StructOpt)]
