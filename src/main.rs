@@ -164,6 +164,8 @@ fn execute(args: Args) -> Result<()> {
                     watcher.watch(file, RecursiveMode::NonRecursive)?;
                 }
 
+                watcher.watch(&sample_dir, RecursiveMode::Recursive)?;
+
                 Some(watcher)
             } else {
                 mem::drop(tx);

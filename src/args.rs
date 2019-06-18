@@ -89,7 +89,7 @@ pub struct TestSolution {
     #[structopt(short = "d", long = "dir", default_value = "./")]
     pub directory: PathBuf,
 
-    /// Rerun the tests when any of the submission files changes.
+    /// Rerun the tests when any of the submission files or samples change.
     #[structopt(short = "w", long = "watch")]
     pub watch: bool,
 }
