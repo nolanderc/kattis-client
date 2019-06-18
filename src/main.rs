@@ -17,16 +17,17 @@ use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str::from_utf8;
+use std::time::Instant;
 use structopt::StructOpt;
 use term::{color, Attr};
 use zip::ZipArchive;
 
 use crate::args::*;
 use crate::config::*;
+use crate::credentials::Credentials;
 use crate::error::*;
 use crate::query::{Response as QueryResponse, *};
 use crate::session::*;
-use crate::credentials::Credentials;
 
 #[derive(Debug, Clone)]
 struct Sample {
@@ -64,7 +65,10 @@ fn execute(args: Args) -> Result<()> {
 
     match args.command {
         SubCommand::Samples(command) => {
-            let hostname = command.hostname.as_ref().unwrap_or(&config.default_hostname);
+            let hostname = command
+                .hostname
+                .as_ref()
+                .unwrap_or(&config.default_hostname);
 
             assert_problem_exists(hostname, &command.problem)?;
 
@@ -76,7 +80,10 @@ fn execute(args: Args) -> Result<()> {
         }
 
         SubCommand::New(command) => {
-            let hostname = command.hostname.as_ref().unwrap_or(&config.default_hostname);
+            let hostname = command
+                .hostname
+                .as_ref()
+                .unwrap_or(&config.default_hostname);
 
             let template_name = command
                 .template
@@ -178,9 +185,7 @@ fn execute(args: Args) -> Result<()> {
             let templates_dir = Template::dir()?;
 
             let matches = util::file_name_matches(".*", templates_dir)?;
-            let templates = matches
-                .iter()
-                .filter(|path| path.is_dir());
+            let templates = matches.iter().filter(|path| path.is_dir());
 
             list_path_filenames(templates);
         }
@@ -232,9 +237,7 @@ fn execute(args: Args) -> Result<()> {
             let dir = Credentials::directory()?;
 
             let matches = util::file_name_matches(".*", dir)?;
-            let files = matches
-                .iter()
-                .filter(|path| path.is_file());
+            let files = matches.iter().filter(|path| path.is_file());
 
             list_path_filenames(files);
         }
@@ -305,7 +308,7 @@ fn track_submission_progress(session: &mut Session, id: SubmissionId) -> Result<
             }
         }
 
-        if displayed_cases.len() == 0 {
+        if displayed_cases.is_empty() {
             eprintln!("{}...", submission.status);
         }
 
@@ -411,6 +414,9 @@ fn test_solution(
         }
 
         let final_run_command = &run_commands[n_commands - 1];
+
+        // TODO: measure CPU time instead of real time.
+        let before = Instant::now();
         let output = Command::new("sh")
             .arg("-c")
             .arg(final_run_command)
@@ -418,6 +424,10 @@ fn test_solution(
             .stdin(fs::File::open(&case.input)?)
             .stderr(Stdio::inherit())
             .output()?;
+        let after = Instant::now();
+
+        let duration = after - before;
+        let seconds = duration.as_micros() as f64 * 1e-6;
 
         if !output.status.success() {
             let error = Error::RunCommandFailed {
@@ -444,6 +454,8 @@ fn test_solution(
                 println!("Found:\n{}", answer);
                 println!("Expected:\n{}", expected);
             }
+
+            println!("Time: {:.6}", seconds)
         }
     }
 
@@ -468,8 +480,8 @@ fn list_path_filenames<'a>(paths: impl IntoIterator<Item = &'a PathBuf>) {
             let chars = if let Some(name) = name {
                 print!("{}", name);
                 name.chars().count()
-            } else { 
-                0 
+            } else {
+                0
             };
 
             for _ in chars..max_len + 2 {
@@ -582,7 +594,7 @@ impl Template {
 
         let candidates = util::file_name_matches(&name, &template_dir)?;
 
-        if candidates.len() == 0 {
+        if candidates.is_empty() {
             Err(Error::NoMatchingTemplate { name })
         } else if candidates.len() > 1 {
             Err(Error::MultipleTemplateCandidates { name })
