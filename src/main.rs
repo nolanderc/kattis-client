@@ -22,7 +22,6 @@ use structopt::StructOpt;
 use term::{color, Attr};
 use zip::ZipArchive;
 use std::sync::mpsc::channel;
-use std::mem;
 use notify::{watcher, Watcher, RecursiveMode};
 
 use crate::args::*;
@@ -148,16 +147,22 @@ fn execute(args: Args) -> Result<()> {
             let sample_dir = if solution_config.samples.is_relative() {
                 directory.join(&solution_config.samples)
             } else {
-                solution_config.samples
+                solution_config.samples.clone()
             };
 
             if !sample_dir.is_dir() {
                 return Err(Error::SampleDirectoryNotFound { path: sample_dir });
             }
 
-            let (tx, rx) = channel();
+            let test_samples = || -> Result<()> {
+                let samples = TestCase::load(&sample_dir)?;
+                build_solution(&directory, &solution_config.build)?;
+                test_solution(&directory, &solution_config.run, &samples)?;
+                Ok(())
+            };
 
-            let _ = if watch {
+            if watch {
+                let (tx, rx) = channel();
                 let mut watcher = watcher(tx, Duration::from_secs(1))?;
 
                 for file in &solution_config.submission.files {
@@ -166,21 +171,18 @@ fn execute(args: Args) -> Result<()> {
 
                 watcher.watch(&sample_dir, RecursiveMode::Recursive)?;
 
-                Some(watcher)
-            } else {
-                mem::drop(tx);
-                None
-            };
+                loop {
+                    if let Err(e) = test_samples() {
+                        error!("{}", e);
+                    }
 
-            loop {
-                let samples = TestCase::load(&sample_dir)?;
-                build_solution(&directory, &solution_config.build)?;
-                test_solution(&directory, &solution_config.run, &samples)?;
-
-                match rx.recv() {
-                    Ok(_) => {},
-                    Err(_) => break,
+                    match rx.recv() {
+                        Ok(_) => {},
+                        Err(_) => break,
+                    }
                 }
+            } else {
+                test_samples()?;
             }
         }
 
