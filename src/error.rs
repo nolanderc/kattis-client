@@ -121,6 +121,9 @@ pub enum Error {
 
     #[fail(display = "{}", _0)]
     FsExtra(fs_extra::error::Error),
+
+    #[fail(display = "{}", _0)]
+    NotifyError(notify::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -17,10 +17,13 @@ use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str::from_utf8;
-use std::time::Instant;
+use std::time::{Instant, Duration};
 use structopt::StructOpt;
 use term::{color, Attr};
 use zip::ZipArchive;
+use std::sync::mpsc::channel;
+use std::mem;
+use notify::{watcher, Watcher, RecursiveMode};
 
 use crate::args::*;
 use crate::config::*;
@@ -139,10 +142,8 @@ fn execute(args: Args) -> Result<()> {
             }
         }
 
-        SubCommand::Test(TestSolution { directory }) => {
+        SubCommand::Test(TestSolution { directory, watch }) => {
             let solution_config = SolutionConfig::load(&directory)?;
-
-            build_solution(&directory, &solution_config.build)?;
 
             let sample_dir = if solution_config.samples.is_relative() {
                 directory.join(&solution_config.samples)
@@ -154,9 +155,31 @@ fn execute(args: Args) -> Result<()> {
                 return Err(Error::SampleDirectoryNotFound { path: sample_dir });
             }
 
-            let samples = TestCase::load(&sample_dir)?;
+            let (tx, rx) = channel();
 
-            test_solution(&directory, &solution_config.run, &samples)?;
+            let _ = if watch {
+                let mut watcher = watcher(tx, Duration::from_secs(1))?;
+
+                for file in &solution_config.submission.files {
+                    watcher.watch(file, RecursiveMode::NonRecursive)?;
+                }
+
+                Some(watcher)
+            } else {
+                mem::drop(tx);
+                None
+            };
+
+            loop {
+                let samples = TestCase::load(&sample_dir)?;
+                build_solution(&directory, &solution_config.build)?;
+                test_solution(&directory, &solution_config.run, &samples)?;
+
+                match rx.recv() {
+                    Ok(_) => {},
+                    Err(_) => break,
+                }
+            }
         }
 
         SubCommand::Template(TemplateSubCommand::New { name }) => {
