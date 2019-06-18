@@ -92,6 +92,10 @@ pub struct TestSolution {
     /// Rerun the tests when any of the submission files or samples change.
     #[structopt(short = "w", long = "watch")]
     pub watch: bool,
+
+    /// Clear the screen before building and printing the test results. Works well in combination with '--watch'
+    #[structopt(short = "c", long = "clear")]
+    pub clear: bool,
 }
 
 #[derive(Debug, StructOpt)]

@@ -141,7 +141,7 @@ fn execute(args: Args) -> Result<()> {
             }
         }
 
-        SubCommand::Test(TestSolution { directory, watch }) => {
+        SubCommand::Test(TestSolution { directory, watch, clear }) => {
             let solution_config = SolutionConfig::load(&directory)?;
 
             let sample_dir = if solution_config.samples.is_relative() {
@@ -156,8 +156,19 @@ fn execute(args: Args) -> Result<()> {
 
             let test_samples = || -> Result<()> {
                 let samples = TestCase::load(&sample_dir)?;
+
+                if clear {
+                    Command::new("clear").status()?;
+                }
+
                 build_solution(&directory, &solution_config.build)?;
+
+                if clear {
+                    Command::new("clear").status()?;
+                }
+
                 test_solution(&directory, &solution_config.run, &samples)?;
+
                 Ok(())
             };
 
