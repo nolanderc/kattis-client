@@ -15,7 +15,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::str::from_utf8;
 use structopt::StructOpt;
 use term::{color, Attr};
@@ -416,6 +416,7 @@ fn test_solution(
             .arg(final_run_command)
             .current_dir(&current_dir)
             .stdin(fs::File::open(&case.input)?)
+            .stderr(Stdio::inherit())
             .output()?;
 
         if !output.status.success() {
@@ -424,10 +425,10 @@ fn test_solution(
             };
             error!("{}", error);
         } else {
-            let output = from_utf8(&output.stdout).map_err(Error::InvalidUtf8Answer)?;
+            let answer = from_utf8(&output.stdout).map_err(Error::InvalidUtf8Answer)?;
             let expected = util::read_file(&case.answer)?;
 
-            if output == expected {
+            if answer == expected {
                 term.fg(term::color::GREEN).unwrap();
                 println!("Correct");
                 term.reset().unwrap();
@@ -440,7 +441,7 @@ fn test_solution(
 
                 println!();
                 println!("Input:\n{}", input);
-                println!("Found:\n{}", output);
+                println!("Found:\n{}", answer);
                 println!("Expected:\n{}", expected);
             }
         }
