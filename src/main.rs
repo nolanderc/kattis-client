@@ -10,6 +10,8 @@ mod query;
 mod session;
 mod util;
 
+use crossterm::{style, Color, Colorize, Styler};
+use notify::{watcher, RecursiveMode, Watcher};
 use reqwest::StatusCode;
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -17,12 +19,10 @@ use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::str::from_utf8;
-use std::time::{Instant, Duration};
-use structopt::StructOpt;
-use term::{color, Attr};
-use zip::ZipArchive;
 use std::sync::mpsc::channel;
-use notify::{watcher, Watcher, RecursiveMode};
+use std::time::{Duration, Instant};
+use structopt::StructOpt;
+use zip::ZipArchive;
 
 use crate::args::*;
 use crate::config::*;
@@ -141,7 +141,13 @@ fn execute(args: Args) -> Result<()> {
             }
         }
 
-        SubCommand::Test(TestSolution { directory, watch, clear, ignore, filter }) => {
+        SubCommand::Test(TestSolution {
+            directory,
+            watch,
+            clear,
+            ignore,
+            filter,
+        }) => {
             let solution_config = SolutionConfig::load(&directory)?;
 
             let sample_dir = if solution_config.samples.is_relative() {
@@ -193,7 +199,7 @@ fn execute(args: Args) -> Result<()> {
                     }
 
                     match rx.recv() {
-                        Ok(_) => {},
+                        Ok(_) => {}
                         Err(_) => break,
                     }
                 }
@@ -322,14 +328,12 @@ fn track_submission_progress(session: &mut Session, id: SubmissionId) -> Result<
 
     let display_status = |status: Status| {
         let color = if status == Status::Accepted {
-            color::GREEN
+            Color::Green
         } else {
-            color::RED
+            Color::Red
         };
 
-        stderr_style!([Attr::ForegroundColor(color), Attr::Bold], {
-            eprintln!("{}", status)
-        });
+        eprintln!("{}", style(status).bold().with(color));
     };
 
     loop {
@@ -434,11 +438,8 @@ fn test_solution(
         Err(Error::RunCommandsMissing)?;
     }
 
-    let mut term = term::stdout().unwrap();
     for case in cases {
-        term.attr(term::Attr::Bold).unwrap();
-        println!("Running test case: {}", case.name);
-        term.reset().unwrap();
+        println!("Running test case: {}", style(&case.name).bold());
 
         if n_commands > 1 {
             for command in run_commands[..n_commands - 1].iter() {
@@ -484,13 +485,9 @@ fn test_solution(
             println!("Time: {:.6}", seconds);
 
             if answer == expected {
-                term.fg(term::color::GREEN).unwrap();
-                println!("Correct");
-                term.reset().unwrap();
+                println!("{}", "Correct".green());
             } else {
-                term.fg(term::color::RED).unwrap();
-                println!("Wrong Answer");
-                term.reset().unwrap();
+                println!("{}", "Wrong Answer".red());
 
                 let input = util::read_file(&case.input)?;
 
@@ -586,8 +583,9 @@ impl Sample {
 
 impl TestCase {
     /// Load samples which names pass a predicate.
-    pub fn load<F>(path: impl AsRef<Path>, mut predicate: F) -> Result<Vec<TestCase>> 
-        where F: FnMut(&str) -> bool
+    pub fn load<F>(path: impl AsRef<Path>, mut predicate: F) -> Result<Vec<TestCase>>
+    where
+        F: FnMut(&str) -> bool,
     {
         let mut sets = HashMap::new();
 
