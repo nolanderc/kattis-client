@@ -16,14 +16,15 @@
 
 ### Using Cargo
 
+This tool can easily be installed using
+[Cargo](https://www.rust-lang.org/tools/install), the Rust package manager.
+
 ```
-git clone https://github.com/nolanderc/kattis-client
-cd kattis-client
-cargo install --path .
+cargo install kattis
 ```
 
-> It is normal for compilation to take a couple minutes. Meanwhile, you
-> can prepare your [configuration](#configuration).
+> It is normal for installation to take a minute. Meanwhile, you can prepare
+> your [configuration](#configuration).
 
 ## Example Usage
 
