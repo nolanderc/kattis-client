@@ -484,7 +484,7 @@ fn test_solution(
 
             println!("Time: {:.6}", seconds);
 
-            if answer == expected {
+            if fuzzy_str_eq(&answer, &expected) {
                 println!("{}", "Correct".green());
             } else {
                 println!("{}", "Wrong Answer".red());
@@ -500,6 +500,17 @@ fn test_solution(
     }
 
     Ok(())
+}
+
+/// Compare two strings, returning true if they are equal when all whitespace is stripped from the
+/// end of all lines.
+fn fuzzy_str_eq(a: &str, b: &str) -> bool {
+    let trim = str::trim_end;
+
+    let lines_a = trim(a).lines().map(trim);
+    let lines_b = trim(b).lines().map(trim);
+
+    lines_a.eq(lines_b)
 }
 
 fn list_path_filenames<'a>(paths: impl IntoIterator<Item = &'a PathBuf>) {
