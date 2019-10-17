@@ -18,7 +18,7 @@ use std::env;
 use std::fs;
 use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Command, Stdio, exit};
 use std::str::from_utf8;
 use std::sync::mpsc::channel;
 use std::time::{Duration, Instant};
@@ -58,6 +58,7 @@ fn main() {
         Ok(()) => {}
         Err(e) => {
             error!("{}", e);
+            exit(1);
         }
     }
 }
