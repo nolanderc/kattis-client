@@ -6,8 +6,8 @@ edition = "2018"
 license = "MIT OR Apache-2.0"
 description = "Manage Kattis submissions, samples and templates from the terminal."
 readme = "README.md"
-homepage = "https://github.com/nolanderc/katti-client"
-repository = "https://github.com/nolanderc/katti-client"
+homepage = "https://github.com/nolanderc/kattis-client"
+repository = "https://github.com/nolanderc/kattis-client"
 keywords = ["cli", "kattis", "submit", "test", "samples"]
 categories = ["command-line-utilities"]
 
