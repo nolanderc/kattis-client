@@ -161,7 +161,7 @@ configuration directory:
 | --- | --- | --- |
 | Linux | $XDG_CONFIG_HOME/kattis or $HOME/.config/kattis | /home/alice/.config/kattis |
 | macOS | $HOME/Library/Preferences/kattis | /Users/Alice/Library/Preferences/kattis |
-| Linux | {FOLDERID_RoamingAppData} | C:\Users\Alice\AppData\Roaming\kattis |
+| Windows | {FOLDERID_RoamingAppData} | C:\Users\Alice\AppData\Roaming\kattis |
 
 You can override the default configuration directory by setting the 
 `KATTIS_CONFIG_HOME` environment variable.
