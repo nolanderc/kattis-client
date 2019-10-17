@@ -14,6 +14,7 @@ use crossterm::{style, Color, Colorize, Styler};
 use notify::{watcher, RecursiveMode, Watcher};
 use reqwest::StatusCode;
 use std::collections::{HashMap, HashSet};
+use std::env;
 use std::fs;
 use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
@@ -150,14 +151,12 @@ fn execute(args: Args) -> Result<()> {
         }) => {
             let solution_config = SolutionConfig::load(&directory)?;
 
-            let sample_dir = if solution_config.samples.is_relative() {
-                directory.join(&solution_config.samples)
-            } else {
-                solution_config.samples.clone()
-            };
+            env::set_current_dir(&directory)?;
+
+            let sample_dir = &solution_config.samples;
 
             if !sample_dir.is_dir() {
-                return Err(Error::SampleDirectoryNotFound { path: sample_dir });
+                return Err(Error::SampleDirectoryNotFound { path: sample_dir.to_owned() });
             }
 
             let test_samples = || -> Result<()> {
@@ -172,13 +171,13 @@ fn execute(args: Args) -> Result<()> {
                     Command::new("clear").status()?;
                 }
 
-                build_solution(&directory, &solution_config.build)?;
+                build_solution(".", &solution_config.build)?;
 
                 if clear {
                     Command::new("clear").status()?;
                 }
 
-                test_solution(&directory, &solution_config.run, &samples)?;
+                test_solution(".", &solution_config.run, &samples)?;
 
                 Ok(())
             };
