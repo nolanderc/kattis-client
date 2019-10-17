@@ -47,9 +47,6 @@ pub struct NewSolution {
     pub template: Option<String>,
 
     /// The id of the problem.
-    ///
-    /// Downloads the appropriate samples and configures the submission.
-    #[structopt(short = "p", long = "problem")]
     pub problem: String,
 
     /// The name of the new directory. Defaults to the id of the problem.
@@ -69,7 +66,6 @@ pub struct DownloadSamples {
     /// The id of the problem.
     ///
     /// Downloads the appropriate samples.
-    #[structopt(short = "p", long = "problem")]
     pub problem: String,
 
     /// The directory to store the samples within.
