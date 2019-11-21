@@ -2,7 +2,7 @@ use failure::Fail;
 use regex::Regex;
 use reqwest::{header, multipart, Client, StatusCode};
 use serde_derive::*;
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
 use std::str::FromStr;
 
 use select::document::Document;
@@ -172,9 +172,8 @@ impl Session {
         );
 
         let mut response = self.client.get(&url).send()?;
-
-        let submission_row: SubmissionRow = response.json()?;
-        let submission_status = submission_row.try_into()?;
+        let text = response.text()?;
+        let submission_status = SubmissionStatus::try_from_html(&text)?;
 
         Ok(submission_status)
     }
@@ -270,14 +269,9 @@ pub enum ParseSubmissionRowError {
     UnknownStatus { status: String },
 }
 
-impl TryFrom<SubmissionRow> for SubmissionStatus {
-    type Error = ParseSubmissionRowError;
-
-    fn try_from(row: SubmissionRow) -> std::result::Result<SubmissionStatus, Self::Error> {
-        // We need to add all these excess tags so that it can be parsed as valid HTML.
-        let html = format!("<html><body><table>{}</table></body></html>", row.component);
-
-        let root = Document::from(html.as_str());
+impl SubmissionStatus {
+    pub fn try_from_html(html: &str) -> Result<SubmissionStatus, ParseSubmissionRowError> {
+        let root = Document::from(html);
 
         let status = root
             .find(Name("td").and(Attr("data-type", "status")))
@@ -326,6 +320,16 @@ impl TryFrom<SubmissionRow> for SubmissionStatus {
         };
 
         Ok(submission_status)
+    }
+}
+
+impl TryFrom<SubmissionRow> for SubmissionStatus {
+    type Error = ParseSubmissionRowError;
+
+    fn try_from(row: SubmissionRow) -> std::result::Result<SubmissionStatus, Self::Error> {
+        // We need to add all these excess tags so that it can be parsed as valid HTML.
+        let html = format!("<html><body><table>{}</table></body></html>", row.component);
+        Self::try_from_html(&html)
     }
 }
 
