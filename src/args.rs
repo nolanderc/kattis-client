@@ -53,11 +53,11 @@ pub struct NewSolution {
     #[structopt(short = "d", long = "dir")]
     pub directory: Option<PathBuf>,
 
-    /// The hostname to download from. The default is `open.kattis.com`.
+    /// The hostname to download from.
     ///
     /// May be configured to another default in the configuration file.
-    #[structopt(long = "hostname")]
-    pub hostname: Option<String>,
+    #[structopt(long = "hostname", env = "KATTIS_HOST", default_value = "open.kattis.com")]
+    pub hostname: String,
 }
 
 #[derive(Debug, StructOpt)]
@@ -75,8 +75,8 @@ pub struct DownloadSamples {
     /// The hostname to download from. The default is `open.kattis.com`.
     ///
     /// May be configured to another default in the configuration file.
-    #[structopt(long = "hostname")]
-    pub hostname: Option<String>,
+    #[structopt(long = "hostname", env = "KATTIS_HOST", default_value = "open.kattis.com")]
+    pub hostname: String,
 }
 
 #[derive(Debug, StructOpt)]
@@ -122,11 +122,11 @@ pub struct SubmitSolution {
     #[structopt(short = "f", long = "force")]
     pub force: bool,
 
-    /// The hostname to submit to. The default is `open.kattis.com`.
+    /// The hostname to submit to.
     ///
     /// May be configured to another default in the configuration file.
-    #[structopt(long = "hostname")]
-    pub hostname: Option<String>,
+    #[structopt(long = "hostname", env = "KATTIS_HOST", default_value = "open.kattis.com")]
+    pub hostname: String,
 }
 
 #[derive(Debug, StructOpt)]

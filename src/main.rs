@@ -18,7 +18,7 @@ use std::env;
 use std::fs;
 use std::io::{Cursor, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio, exit};
+use std::process::{exit, Command, Stdio};
 use std::str::from_utf8;
 use std::sync::mpsc::channel;
 use std::time::{Duration, Instant};
@@ -69,14 +69,9 @@ fn execute(args: Args) -> Result<()> {
 
     match args.command {
         SubCommand::Samples(command) => {
-            let hostname = command
-                .hostname
-                .as_ref()
-                .unwrap_or(&config.default_hostname);
+            assert_problem_exists(&command.hostname, &command.problem)?;
 
-            assert_problem_exists(hostname, &command.problem)?;
-
-            let samples = Sample::download(hostname, &command.problem)?;
+            let samples = Sample::download(&command.hostname, &command.problem)?;
 
             for sample in samples {
                 sample.save_in(&command.directory)?;
@@ -84,11 +79,6 @@ fn execute(args: Args) -> Result<()> {
         }
 
         SubCommand::New(command) => {
-            let hostname = command
-                .hostname
-                .as_ref()
-                .unwrap_or(&config.default_hostname);
-
             let template_name = command
                 .template
                 .or_else(|| config.default_template.clone())
@@ -106,7 +96,7 @@ fn execute(args: Args) -> Result<()> {
 
             // Before we do any visible changes to the user, make sure the problem actually
             // exists and that the template files are valid.
-            assert_problem_exists(hostname, &command.problem)?;
+            assert_problem_exists(&command.hostname, &command.problem)?;
             let template_config = TemplateSolutionConfig::load_or_default(&template.path)?;
 
             fs::create_dir(&directory)?;
@@ -116,11 +106,11 @@ fn execute(args: Args) -> Result<()> {
             let solution_config = SolutionConfig::from_template(
                 template_config,
                 command.problem.to_owned(),
-                hostname.to_owned(),
+                command.hostname.clone(),
             );
             solution_config.save_in(&directory)?;
 
-            match Sample::download(hostname, &command.problem) {
+            match Sample::download(&command.hostname, &command.problem) {
                 Err(Error::DownloadSample {
                     code: StatusCode::NOT_FOUND,
                 }) => warn!("No samples found for problem."),
@@ -157,7 +147,9 @@ fn execute(args: Args) -> Result<()> {
             let sample_dir = &solution_config.samples;
 
             if !sample_dir.is_dir() {
-                return Err(Error::SampleDirectoryNotFound { path: sample_dir.to_owned() });
+                return Err(Error::SampleDirectoryNotFound {
+                    path: sample_dir.to_owned(),
+                });
             }
 
             let test_samples = || -> Result<()> {
@@ -265,8 +257,7 @@ fn execute(args: Args) -> Result<()> {
             print_submission(&submission);
 
             if submit.force || confirm_submission() == QueryResponse::Yes {
-                let hostname = submit.hostname.unwrap_or(solution_config.hostname);
-                let mut session = Session::new(&hostname)?;
+                let mut session = Session::new(&submit.hostname)?;
 
                 let submission_id = session.submit(&problem, submission)?;
                 println!("Submission ID: {}", submission_id);

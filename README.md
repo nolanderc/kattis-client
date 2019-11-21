@@ -189,10 +189,8 @@ to submit to a different Kattis domain. This can, among other times, be useful
 during competitions.
 
 By default the client will search for credentials with the name
-`open.kattis.com`. This behaviour can be overriden by changing the
-`default_hostname` property in either the global configuration file
-(`kattis-global.yml`), the solution's configuration file (`kattis.yml`) or with
-a command line flag.
+`open.kattis.com`. This behaviour can be overriden by changing the `KATTIS_HOST`
+environment variable or with a command line flag.
 
 ### Templates
 

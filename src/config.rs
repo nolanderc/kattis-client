@@ -8,9 +8,6 @@ use crate::language::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    #[serde(default = "default_hostname")]
-    pub default_hostname: String,
-
     pub default_template: Option<String>,
 }
 
@@ -76,7 +73,6 @@ pub struct Submission {
 impl Default for Config {
     fn default() -> Config {
         Config {
-            default_hostname: default_hostname(),
             default_template: None,
         }
     }
@@ -101,10 +97,6 @@ impl Default for Submission {
             mainclass: None,
         }
     }
-}
-
-fn default_hostname() -> String {
-    "open.kattis.com".to_owned()
 }
 
 fn default_samples_dir() -> PathBuf {
