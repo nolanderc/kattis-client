@@ -14,13 +14,13 @@ jobs:
         include: 
           - os: ubuntu-latest
             zip_name: kattis-${{ github.event.release.tag_name }}-linux.zip
-            zip_cmd: zip --junk-paths kattis-${{ github.event.release.tag_name }}-linux.zip test
+            zip_cmd: zip --junk-paths kattis-${{ github.event.release.tag_name }}-linux.zip target/release/kattis
           - os: macos-latest
             zip_name: kattis-${{ github.event.release.tag_name }}-macos.zip
-            zip_cmd: zip --junk-paths kattis-${{ github.event.release.tag_name }}-macos.zip test
+            zip_cmd: zip --junk-paths kattis-${{ github.event.release.tag_name }}-macos.zip target/release/kattis
           - os: windows-latest
             zip_name: kattis-${{ github.event.release.tag_name }}-windows.zip
-            zip_cmd: Compress-Archive -LiteralPath test -DestinationPath kattis-${{ github.event.release.tag_name }}-windows.zip
+            zip_cmd: Compress-Archive -LiteralPath target/release/kattis -DestinationPath kattis-${{ github.event.release.tag_name }}-windows.zip
 
     steps:
     - name: Checkout code
@@ -32,15 +32,14 @@ jobs:
           toolchain: stable
           override: true
 
-    #- name: Run cargo build
-      #uses: actions-rs/cargo@v1
-      #with:
-        #command: build
-        #args: --release
+    - name: Run cargo build
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --release
         
     - name: zip artifacts
       run: |
-        echo "This is a test" > test
         ${{ matrix.zip_cmd }}
     - name: Upload artifacts
       uses: actions/upload-release-asset@v1.0.1
