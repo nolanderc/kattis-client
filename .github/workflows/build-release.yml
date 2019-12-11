@@ -7,9 +7,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: 
+          - ubuntu-latest
+          #- macos-latest
+          #- windows-latest
         include: 
-          - os: ubuntu-lastest
+          - os: ubuntu-latest
             zip-name: kattis-${{ github.event.release.tag_name }}-linux
           #- os: macos-latest
             #zip-name: kattis-${{ github.event.release.tag_name }}-macos
