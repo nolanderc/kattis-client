@@ -14,10 +14,14 @@ jobs:
         include: 
           - os: ubuntu-latest
             zip-name: kattis-${{ github.event.release.tag_name }}-linux.zip
+            zip-cmd: zip --junk-paths ${{ matrix.zip_name }} test
           - os: macos-latest
             zip-name: kattis-${{ github.event.release.tag_name }}-macos.zip
+            zip-cmd: zip --junk-paths ${{ matrix.zip_name }} test
           - os: windows-latest
             zip-name: kattis-${{ github.event.release.tag_name }}-windows.zip
+            zip-cmd: Compress-Archive -LiteralPath test -DestinationPath ${{ matrix.zip-name }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@master
@@ -37,8 +41,7 @@ jobs:
     - name: zip artifacts
       run: |
         echo "This is a test" > test
-        zip --junk-paths ${{ matrix.zip-name }} ./test
-        
+        ${{ matrix.zip_cmd }}
     - name: Upload artifacts
       uses: actions/upload-release-asset@v1.0.1
       env:
