@@ -14,13 +14,13 @@ jobs:
         include: 
           - os: ubuntu-latest
             zip-name: kattis-${{ github.event.release.tag_name }}-linux.zip
-            zip-cmd: zip --junk-paths ${{ matrix.zip_name }} test
+            zip-cmd: zip --junk-paths kattis-${{ github.event.release.tag_name }}-linux.zip test
           - os: macos-latest
             zip-name: kattis-${{ github.event.release.tag_name }}-macos.zip
-            zip-cmd: zip --junk-paths ${{ matrix.zip_name }} test
+            zip-cmd: zip --junk-paths kattis-${{ github.event.release.tag_name }}-macos.zip test
           - os: windows-latest
             zip-name: kattis-${{ github.event.release.tag_name }}-windows.zip
-            zip-cmd: Compress-Archive -LiteralPath test -DestinationPath ${{ matrix.zip-name }}
+            zip-cmd: Compress-Archive -LiteralPath test -DestinationPath kattis-${{ github.event.release.tag_name }}-windows.zip
 
     steps:
     - name: Checkout code
