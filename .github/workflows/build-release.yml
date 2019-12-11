@@ -13,11 +13,11 @@ jobs:
           #- windows-latest
         include: 
           - os: ubuntu-latest
-            zip-name: kattis-${{ github.event.release.tag_name }}-linux
+            zip-name: kattis-${{ github.event.release.tag_name }}-linux.zip
           #- os: macos-latest
-            #zip-name: kattis-${{ github.event.release.tag_name }}-macos
+            #zip-name: kattis-${{ github.event.release.tag_name }}-macos.zip
           #- os: windows-latest
-            #zip-name: kattis-${{ github.event.release.tag_name }}-windows
+            #zip-name: kattis-${{ github.event.release.tag_name }}-windows.zip
     steps:
     - name: Checkout code
       uses: actions/checkout@master
@@ -48,6 +48,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./${{ matrix.zip-name }}.zip
-        asset_name: ${{ matrix.zip-name }}.zip
+        asset_path: ./${{ matrix.zip-name }}
+        asset_name: ${{ matrix.zip-name }}
         asset_content_type: application/zip
