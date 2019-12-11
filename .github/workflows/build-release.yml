@@ -11,10 +11,10 @@ jobs:
         include: 
           - os: ubuntu-lastest
             zip-name: kattis-${{ github.event.release.tag_name }}-linux
-          - os: macos-latest
-            zip-name: kattis-${{ github.event.release.tag_name }}-macos
-          - os: windows-latest
-            zip-name: kattis-${{ github.event.release.tag_name }}-windows
+          #- os: macos-latest
+            #zip-name: kattis-${{ github.event.release.tag_name }}-macos
+          #- os: windows-latest
+            #zip-name: kattis-${{ github.event.release.tag_name }}-windows
     steps:
     - name: Checkout code
       uses: actions/checkout@master
@@ -25,22 +25,26 @@ jobs:
           toolchain: stable
           override: true
 
-    - name: Run cargo build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release
+    #- name: Run cargo build
+      #uses: actions-rs/cargo@v1
+      #with:
+        #command: build
+        #args: --release
         
     - name: zip artifacts
       run: |
+        mkdir target
+        mkdir target/release
+        echo "This is a test" > ./target/release/kattis
         zip --junk-paths ${{ matrix.zip-name }} ./target/release/kattis
+        ls
         
     - name: Upload artifacts
       uses: actions/upload-release-asset@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ github.event.release.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        upload_url: ${{ github.event.release.upload_url }}
         asset_path: ./${{ matrix.zip-name }}.zip
         asset_name: ${{ matrix.zip-name }}.zip
         asset_content_type: application/zip
