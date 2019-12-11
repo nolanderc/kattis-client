@@ -20,7 +20,7 @@ jobs:
             zip_cmd: zip --junk-paths kattis-${{ github.event.release.tag_name }}-macos.zip test
           - os: windows-latest
             zip_name: kattis-${{ github.event.release.tag_name }}-windows.zip
-            zip_cmd: Compress-Archive -LiteralPath test -DestinationPath kattis-${{ github.event.release.tag_name }}-windows
+            zip_cmd: Compress-Archive -LiteralPath test -DestinationPath kattis-${{ github.event.release.tag_name }}-windows.zip
 
     steps:
     - name: Checkout code
@@ -48,6 +48,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./${{ matrix.zip_name }}
+        asset_path: ${{ matrix.zip_name }}
         asset_name: ${{ matrix.zip_name }}
         asset_content_type: application/zip
