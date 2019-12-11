@@ -9,15 +9,15 @@ jobs:
       matrix:
         os: 
           - ubuntu-latest
-          #- macos-latest
-          #- windows-latest
+          - macos-latest
+          - windows-latest
         include: 
           - os: ubuntu-latest
             zip-name: kattis-${{ github.event.release.tag_name }}-linux.zip
-          #- os: macos-latest
-            #zip-name: kattis-${{ github.event.release.tag_name }}-macos.zip
-          #- os: windows-latest
-            #zip-name: kattis-${{ github.event.release.tag_name }}-windows.zip
+          - os: macos-latest
+            zip-name: kattis-${{ github.event.release.tag_name }}-macos.zip
+          - os: windows-latest
+            zip-name: kattis-${{ github.event.release.tag_name }}-windows.zip
     steps:
     - name: Checkout code
       uses: actions/checkout@master
@@ -36,11 +36,8 @@ jobs:
         
     - name: zip artifacts
       run: |
-        mkdir target
-        mkdir target/release
-        echo "This is a test" > ./target/release/kattis
-        zip --junk-paths ${{ matrix.zip-name }} ./target/release/kattis
-        ls
+        echo "This is a test" > test
+        zip --junk-paths ${{ matrix.zip-name }} ./test
         
     - name: Upload artifacts
       uses: actions/upload-release-asset@v1.0.1
