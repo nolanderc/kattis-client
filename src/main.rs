@@ -672,6 +672,7 @@ impl Template {
             buffer_size: 64000,
             copy_inside: false,
             depth: 0,
+            ..Default::default()
         };
 
         fs_extra::copy_items(&template_items, target, &options)?;

@@ -1,6 +1,6 @@
 [package]
 name = "kattis"
-version = "0.2.1"
+version = "0.2.3"
 authors = ["Christofer Nolander <christofer.nolander@gmail.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
@@ -21,7 +21,7 @@ dirs = "2.0.1"
 serde_yaml = "0.8.9"
 derive_more = "0.15.0"
 zip = "0.5.2"
-fs_extra = "1.1.0"
+fs_extra = "1.2.0"
 select = "0.4.2"
 regex = "1.1.7"
 notify = "4.0.12"
